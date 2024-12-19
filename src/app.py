@@ -1,9 +1,30 @@
 import streamlit as st
+import os
 from services.openai_service import OpenAIService
 from utils.constants import *
 
+# Initialize OpenAI service with API key from environment variable or secrets
+def get_openai_api_key():
+    # Try to get from environment variable first
+    api_key = os.getenv('OPENAI_API_KEY')
+    if api_key:
+        return api_key
+    
+    # If not in environment, try to get from secrets
+    try:
+        return st.secrets["OPENAI_API_KEY"]
+    except Exception:
+        st.error("""
+        Please set your OpenAI API key in one of these ways:
+        1. Set the OPENAI_API_KEY environment variable
+        2. Add it to .streamlit/secrets.toml
+        
+        See the README for more details.
+        """)
+        st.stop()
+
 # Initialize OpenAI service
-openai_service = OpenAIService(st.secrets["OPENAI_API_KEY"])
+openai_service = OpenAIService(get_openai_api_key())
 
 # Streamlit app layout
 st.title(APP_TITLE)
