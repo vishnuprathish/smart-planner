@@ -4,6 +4,7 @@ import os
 from services.openai_service import OpenAIService
 from services.firebase_service import FirebaseService
 from utils.constants import *
+import re
 
 # Initialize OpenAI client
 try:
@@ -37,6 +38,11 @@ def all_questions_answered():
         return False
     return all(st.session_state.get(f"answer_{i}") for i in range(len(st.session_state.questions)))
 
+def is_valid_email(email):
+    """Validate email format."""
+    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return re.match(pattern, email) is not None
+
 # Text box for user input
 user_input = st.text_input(ENTER_GOAL_MESSAGE, key="goal")
 
@@ -67,6 +73,30 @@ if st.session_state.show_questions and st.session_state.questions:
         help=TIME_COMMITMENT_HELP
     )
 
+    # Email and reminder preferences
+    st.subheader("Email Reminders")
+    email = st.text_input("Enter your email for reminders (optional)")
+    
+    reminder_frequency = None
+    reminder_time = None
+    
+    if email:
+        if not is_valid_email(email):
+            st.error("Please enter a valid email address")
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                reminder_frequency = st.selectbox(
+                    "Reminder Frequency",
+                    ["Daily", "Weekly"],
+                    index=0
+                )
+            with col2:
+                reminder_time = st.time_input(
+                    "Preferred Reminder Time",
+                    value=None
+                )
+
     # Button to generate plan
     if st.button('Build my plan'):
         if not user_input:
@@ -78,6 +108,9 @@ if st.session_state.show_questions and st.session_state.questions:
         if time_commitment <= 0:
             st.error("Please set your daily time commitment!")
             st.stop()
+        if email and not is_valid_email(email):
+            st.error("Please enter a valid email address!")
+            st.stop()
 
         with st.spinner('Generating your personalized plan...'):
             # Get answers from session state
@@ -85,6 +118,16 @@ if st.session_state.show_questions and st.session_state.questions:
             
             # Generate the plan
             tasks, habits = openai_service.generate_plan(user_input, answers, time_commitment)
+            
+            # Prepare reminder settings if email is provided
+            reminder_settings = None
+            if email and is_valid_email(email):
+                reminder_settings = {
+                    'email': email,
+                    'frequency': reminder_frequency,
+                    'time': reminder_time.strftime('%H:%M') if reminder_time else None,
+                    'status': 'active'
+                }
             
             # Store in Firebase
             try:
@@ -94,10 +137,13 @@ if st.session_state.show_questions and st.session_state.questions:
                     answers=answers,
                     time_commitment=time_commitment,
                     tasks=tasks,
-                    habits=habits
+                    habits=habits,
+                    reminder_settings=reminder_settings
                 )
                 if goal_id:
                     st.success("Your plan has been saved!")
+                    if reminder_settings:
+                        st.success(f"You'll receive {reminder_frequency.lower()} reminders at {reminder_time.strftime('%I:%M %p')}")
             except Exception as e:
                 st.warning(f"Could not save your plan: {str(e)}")
             
@@ -121,6 +167,11 @@ if st.sidebar.checkbox("View Previous Goals"):
                     st.write(goal['tasks'])
                     st.write("Habits:")
                     st.write(goal['habits'])
+                    if 'reminder_settings' in goal and goal['reminder_settings']:
+                        st.write("Reminder Settings:")
+                        st.write(f"Email: {goal['reminder_settings']['email']}")
+                        st.write(f"Frequency: {goal['reminder_settings']['frequency']}")
+                        st.write(f"Time: {goal['reminder_settings']['time']}")
                     st.write(f"Created: {goal['timestamp']}")
         else:
             st.sidebar.info("No previous goals found.")
