@@ -1,6 +1,6 @@
 # Smart Goal Planner
 
-A Streamlit-based web application that helps users break down their goals into actionable tasks and daily micro-habits. The app uses OpenAI's GPT-3.5 to generate personalized plans based on user input and time commitment.
+A Streamlit-based web application that helps users break down their goals into actionable tasks and daily micro-habits. The app uses OpenAI's GPT-4-mini model to generate personalized plans based on user input and time commitment.
 
 ## Features
 

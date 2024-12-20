@@ -10,7 +10,7 @@ class OpenAIService:
         """Generate relevant questions based on the goal."""
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that generates relevant questions to better understand someone's goal."},
                     {"role": "user", "content": f"Generate exactly 3 specific questions that would help better understand the following goal: {goal}. Return only the questions, numbered 1-3, nothing else."}
@@ -30,7 +30,7 @@ class OpenAIService:
         try:
             # Generate task breakdown
             tasks_response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that creates detailed, personalized action plans."},
                     {"role": "user", "content": f"Based on the following goal and additional information, create a detailed, actionable task breakdown:\n\n{context}\n\nProvide a numbered list of specific, actionable tasks."}
@@ -40,7 +40,7 @@ class OpenAIService:
 
             # Generate micro-habits
             habits_response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
+                model="gpt-4o-mini",
                 messages=[
                     {"role": "system", "content": "You are a helpful assistant that converts tasks into daily micro-habits."},
                     {"role": "user", "content": f"""Based on these tasks and the time commitment of {time_commitment} minutes per day, create a set of daily micro-habits that will help achieve the goal.

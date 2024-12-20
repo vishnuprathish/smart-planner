@@ -2,8 +2,6 @@ import streamlit as st
 import openai
 import os
 
-# Set the provided local time
-local_time = '2024-12-19T14:00:27-05:00'
 
 # Initialize OpenAI client
 openai.api_key = st.secrets["OPENAI_API_KEY"]
