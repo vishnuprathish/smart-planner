@@ -1,6 +1,21 @@
 from openai import OpenAI
 import streamlit as st
-from typing import Tuple, List
+from typing import List, Dict
+from pydantic import BaseModel, Field
+import json
+
+class GoalPlan(BaseModel):
+    """Schema for the goal plan response."""
+    tasks: List[str] = Field(
+        min_items=3,
+        max_items=5,
+        description="List of 3-5 strategic action items to achieve the goal"
+    )
+    habits: List[str] = Field(
+        min_items=3,
+        max_items=5,
+        description="List of 3-5 daily micro-habits that support the goal"
+    )
 
 class OpenAIService:
     def __init__(self, api_key=None):
@@ -23,90 +38,94 @@ class OpenAIService:
                      2. Specific challenges or obstacles
                      3. Previous attempts or experience
                      4. Available resources and support
-                     Keep questions concise and focused."""},
+                     
+                     Return EXACTLY 4 questions in this JSON format:
+                     {
+                         "questions": [
+                             "Question 1",
+                             "Question 2",
+                             "Question 3",
+                             "Question 4"
+                         ]
+                     }"""},
                     {"role": "user", "content": f"Generate 4 relevant questions to help create an action plan for this goal: {goal}"}
                 ]
             )
-            questions = response.choices[0].message.content.split('\n')
-            # Clean up question format
-            questions = [q.strip().replace('*', '').replace('-', '').strip() for q in questions if q.strip()]
-            return questions[:4]  # Ensure we only return 4 questions
+            
+            try:
+                # Parse JSON response
+                response_data = json.loads(response.choices[0].message.content)
+                questions = response_data.get("questions", [])
+                return questions[:4]
+            except json.JSONDecodeError:
+                # Fallback: split by newlines if JSON parsing fails
+                questions = response.choices[0].message.content.split('\n')
+                questions = [q.strip().replace('*', '').replace('-', '').strip() 
+                           for q in questions if q.strip()]
+                return questions[:4]
+            
         except Exception as e:
             st.error(f"Error generating questions: {str(e)}")
             return []
 
-    def clean_point(self, point: str) -> str:
-        """Clean a single point by removing bullets and extra whitespace."""
-        # Remove bullet points and their variations
-        point = point.strip()
-        point = point.lstrip('•').lstrip('*').lstrip('-').lstrip('○').lstrip('·')
-        # Remove "First/Second/etc point:" prefixes
-        prefixes = ['first', 'second', 'third', 'fourth', 'fifth']
-        point_lower = point.lower()
-        for prefix in prefixes:
-            if point_lower.startswith(f"{prefix} point:"):
-                point = point[len(f"{prefix} point:"):].strip()
-            elif point_lower.startswith(f"{prefix}:"):
-                point = point[len(f"{prefix}:"):].strip()
-        return point.strip()
-
-    def generate_plan(self, goal: str, answers: dict, time_commitment: int) -> Tuple[str, str]:
-        """Generate a personalized action plan based on the goal and answers."""
+    def generate_plan(self, goal: str, questions: List[str], answers: List[str]) -> Dict:
+        """Generate a personalized action plan based on the user's goal and answers."""
         try:
-            # Combine answers into a single string
-            answers_text = "\n".join([f"Q: {q}\nA: {a}" for q, a in answers.items()])
+            # Combine questions and answers
+            qa_pairs = [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
+            qa_context = "\n\n".join(qa_pairs)
             
             response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
-                    {"role": "system", "content": """You are an AI goal achievement expert. Create a personalized action 
-                     plan that includes:
-                     1. A clear strategy broken down into actionable steps
-                     2. Specific micro-habits that can be done in the time commitment specified
-                     3. Tips for overcoming potential obstacles
-                     4. Ways to track progress
-                     Keep the plan practical and achievable.
+                    {"role": "system", "content": """You are an AI goal achievement expert. Based on the user's goal and their answers to questions, create:
+                     1. A list of 3-5 strategic action items (tasks)
+                     2. A list of 3-5 daily micro-habits that will support their goal
                      
-                     Format your response exactly like this:
-                     Strategic Action Plan:
-                     • First strategy point
-                     • Second strategy point
-                     • Third strategy point
+                     Return your response in this EXACT JSON format:
+                     {
+                         "tasks": [
+                             "Task 1",
+                             "Task 2",
+                             "Task 3"
+                         ],
+                         "habits": [
+                             "Habit 1",
+                             "Habit 2",
+                             "Habit 3"
+                         ]
+                     }
                      
-                     Success-Building Habits (X mins/day):
-                     • First habit
-                     • Second habit
-                     • Third habit"""},
-                    {"role": "user", "content": f"""Create a personalized action plan for this goal: {goal}
-                     Time commitment: {time_commitment} minutes per day
-                     User's responses:
-                     {answers_text}"""}
+                     Each task should be specific, actionable, and aligned with their goal.
+                     Each habit should be small, manageable, and directly support their goal.
+                     """},
+                    {"role": "user", "content": f"""
+                    Goal: {goal}
+                    
+                    Context from questions:
+                    {qa_context}
+                    
+                    Generate a strategic plan with tasks and habits in the specified JSON format.
+                    """}
                 ]
             )
             
-            full_plan = response.choices[0].message.content
-            
-            # Split into strategy and habits sections
-            sections = full_plan.split('\n\n')
-            
-            # Extract strategy section
-            strategy_section = next((s for s in sections if 'Strategic Action Plan:' in s), '')
-            strategy = strategy_section.replace('Strategic Action Plan:', '').strip()
-            
-            # Extract habits section
-            habits_section = next((s for s in sections if 'Success-Building Habits' in s), '')
-            habits = habits_section.replace(f'Success-Building Habits ({time_commitment} mins/day):', '').strip()
-            
-            # Split into bullet points and clean them
-            strategy_points = [self.clean_point(point) for point in strategy.split('\n') if point.strip()]
-            habits_points = [self.clean_point(point) for point in habits.split('\n') if point.strip()]
-            
-            # Format as strings with bullet points
-            strategy_formatted = '\n'.join(f'• {point}' for point in strategy_points if point)
-            habits_formatted = '\n'.join(f'• {point}' for point in habits_points if point)
-            
-            return strategy_formatted, habits_formatted
+            try:
+                # Parse and validate response
+                response_data = json.loads(response.choices[0].message.content)
+                plan = GoalPlan(**response_data)
+                
+                return {
+                    'goal': goal,
+                    'questions': questions,
+                    'answers': answers,
+                    'tasks': '\n'.join(plan.tasks),
+                    'habits': '\n'.join(plan.habits)
+                }
+            except json.JSONDecodeError as e:
+                st.error("Error: The AI response was not in the correct format. Please try again.")
+                return None
             
         except Exception as e:
             st.error(f"Error generating plan: {str(e)}")
-            return "", ""
+            return None
