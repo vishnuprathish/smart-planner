@@ -3,7 +3,7 @@ import streamlit as st
 def show_welcome_section():
     """Display the welcome section with title and description."""
     st.markdown("""
-        <div style='margin: 2em 180px 2em 2em;'>
+        <div style='margin: 2em auto; max-width: 90%; padding: 0 1em;'>
             <h1 style='text-align: center; margin-bottom: 1em;'>
                 🎯 Smart Goal Planner
                 <br>
@@ -11,11 +11,5 @@ def show_welcome_section():
                     Turn Your Dreams into Reality with AI-Powered Goal Achievement
                 </span>
             </h1>
-            <div style='text-align: center; margin-bottom: 2em;'>
-                <p style='color: #555; font-size: 1.1em; max-width: 600px; margin: 0 auto;'>
-                    We combine AI-driven insights with psychology-backed strategies to create 
-                    your personalized success roadmap. 🚀
-                </p>
-            </div>
         </div>
     """, unsafe_allow_html=True)

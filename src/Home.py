@@ -63,59 +63,30 @@ if not st.session_state.current_plan:
     st.markdown("""
         <div style='text-align: center; margin: 2em 0 1em;'>
             <p style='color: #444; font-size: 1.1em; font-weight: 500;'>
-                🌟 Unlock Your Personalized Success Plan
+                📧 Optionally, enter your email to receive reminders for your daily micro-habits
             </p>
         </div>
     """, unsafe_allow_html=True)
-    
-    # Split benefits into columns for better visual organization
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.markdown("""
-            <div style='text-align: center; padding: 1em;'>
-                <h4>🎯 Smart Planning</h4>
-                <p>AI-powered action plans tailored to your lifestyle</p>
-            </div>
-        """, unsafe_allow_html=True)
-    with col2:
-        st.markdown("""
-            <div style='text-align: center; padding: 1em;'>
-                <h4>🌟 Daily Motivation</h4>
-                <p>Expert guidance and support to keep you on track</p>
-            </div>
-        """, unsafe_allow_html=True)
-    with col3:
-        st.markdown("""
-            <div style='text-align: center; padding: 1em;'>
-                <h4>📈 Progress Tracking</h4>
-                <p>Celebrate milestones and stay accountable</p>
-            </div>
-        """, unsafe_allow_html=True)
 
-    col1, col2, col3 = st.columns([1,3,1])
-    with col2:
-        email = st.text_input(
-            "",
-            placeholder="Enter your email to begin your transformation journey",
-            key="email_input",
-            label_visibility="collapsed"
-        )
+    email = st.text_input(
+        "",
+        placeholder="Enter your email (optional)",
+        key="email_input"
+    )
         
-        if email and not is_valid_email(email):
-            st.error("Oops! That email doesn't look quite right. Mind double-checking? 🤔")
+    if email and not is_valid_email(email):
+        st.error("Oops! That email doesn't look quite right. Mind double-checking? 🤔")
 
-    col1, col2, col3 = st.columns([1,2,1])
-    with col2:
-        if st.button("Begin My Journey", key="start_button", type="primary"):
-            if not goal:
-                st.warning("🎯 Please enter your goal first!")
-            else:
-                # Store email in session state if provided
-                if email:
-                    st.session_state.user_email = email
-                with st.spinner("🤔 Analyzing your goal..."):
-                    st.session_state.questions = openai_service.generate_questions(goal)
-                    st.session_state.show_questions = True
+    if st.button("Begin My Journey", key="start_button", type="primary"):
+        if not goal:
+            st.warning("🎯 Please enter your goal first!")
+        else:
+            # Store email in session state if provided
+            if email:
+                st.session_state.user_email = email
+            with st.spinner("🤔 Analyzing your goal..."):
+                st.session_state.questions = openai_service.generate_questions(goal)
+                st.session_state.show_questions = True
 
 # Display questions and collect answers
 if st.session_state.show_questions and st.session_state.questions and not st.session_state.current_plan:

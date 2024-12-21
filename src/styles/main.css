@@ -27,10 +27,13 @@ p, h1, h2, h3, h4, h5, h6, .stMarkdown, .stText {
     background-color: #2D2D2D !important;
     color: white !important;
     border: 1px solid #3D3D3D !important;
+    width: 100% !important;
+    max-width: 100% !important;
 }
 
 .stTextInput input {
     color: white !important;
+    font-size: 16px !important; /* Prevents zoom on mobile */
 }
 
 .stSelectbox > div > div {
@@ -56,10 +59,11 @@ button[kind="primary"] {
     background-color: #FF4B4B !important;
     color: white !important;
     border: none !important;
-}
-
-.stButton button p {
-    color: white !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    padding: 0.8em !important;
+    font-size: 16px !important;
+    min-height: 44px !important; /* Better touch targets */
 }
 
 .stButton>button {
@@ -189,14 +193,11 @@ button[kind="primary"] {
 }
 
 /* Info boxes */
-.info-box {
-    background-color: #2D2D2D;
-    border-radius: 10px;
-    padding: 20px;
-    margin: 10px 0;
-    border: 1px solid #3D3D3D;
-    border-left: 4px solid #FF4B4B;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+.info-box, .tip-box, .celebration-box {
+    padding: 1em !important;
+    margin: 1em auto !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
 }
 
 .info-box h3 {
@@ -325,4 +326,38 @@ div[data-baseweb="popover"] {
 
 div[data-baseweb="popover"] * {
     color: white !important;
+}
+
+/* Responsive layout */
+@media (max-width: 768px) {
+    .stButton button {
+        width: 100% !important;
+        margin: 0.5em 0 !important;
+    }
+    
+    h1 {
+        font-size: 1.8em !important;
+    }
+    
+    .info-box, .tip-box, .celebration-box {
+        margin: 0.5em auto !important;
+        padding: 0.8em !important;
+    }
+    
+    [data-testid="column"] {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+        margin-bottom: 1em !important;
+    }
+}
+
+/* Touch-friendly styles */
+button, input, select, textarea {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* Prevent text size adjustment on orientation change */
+html {
+    -webkit-text-size-adjust: 100%;
 }
