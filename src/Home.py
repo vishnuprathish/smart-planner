@@ -29,7 +29,7 @@ def reset_form():
 
 # Initialize services
 try:
-    openai_service = OpenAIService()
+    openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
 except Exception as e:
     st.error("Please set your OpenAI API key in .streamlit/secrets.toml")
     st.stop()

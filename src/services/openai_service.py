@@ -3,10 +3,10 @@ import streamlit as st
 from typing import Tuple, List
 
 class OpenAIService:
-    def __init__(self):
-        """Initialize OpenAI service with API key from Streamlit secrets."""
+    def __init__(self, api_key=None):
+        """Initialize OpenAI service with API key."""
         try:
-            self.api_key = st.secrets["OPENAI_API_KEY"]
+            self.api_key = api_key or st.secrets["OPENAI_API_KEY"]
             openai.api_key = self.api_key
         except Exception as e:
             raise Exception("Please set your OpenAI API key in .streamlit/secrets.toml")

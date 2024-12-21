@@ -14,7 +14,7 @@ except Exception as e:
     st.stop()
 
 # Initialize services
-openai_service = OpenAIService(openai.api_key)
+openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
 try:
     firebase_service = FirebaseService()
 except Exception as e:
