@@ -13,7 +13,6 @@ def show_welcome_section():
             </h1>
             <div style='text-align: center; margin-bottom: 2em;'>
                 <p style='color: #555; font-size: 1.1em; max-width: 600px; margin: 0 auto;'>
-                    Join thousands who've achieved their goals using our proven system. 
                     We combine AI-driven insights with psychology-backed strategies to create 
                     your personalized success roadmap. 🚀
                 </p>

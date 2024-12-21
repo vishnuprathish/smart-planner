@@ -2,7 +2,6 @@ import streamlit as st
 from pathlib import Path
 from services.openai_service import OpenAIService
 from services.firebase_service import FirebaseService
-from components.progress_bar import show_progress_bar
 from components.welcome import show_welcome_section
 from utils.session import init_session_state, is_valid_email
 
@@ -46,7 +45,6 @@ init_session_state()
 # Streamlit app layout
 if not st.session_state.current_plan:
     st.session_state.current_step = 1
-    show_progress_bar(st.session_state.current_step)
     show_welcome_section()
     
     # Goal input section
@@ -122,7 +120,6 @@ if not st.session_state.current_plan:
 # Display questions and collect answers
 if st.session_state.show_questions and st.session_state.questions and not st.session_state.current_plan:
     st.session_state.current_step = 2
-    show_progress_bar(st.session_state.current_step)
     
     st.markdown("""
         <div style='text-align: center; margin: 2em 0;'>
@@ -215,7 +212,6 @@ if st.session_state.show_questions and st.session_state.questions and not st.ses
 # Display plan and reminder option
 if st.session_state.current_plan and not st.session_state.plan_saved:
     st.session_state.current_step = 3
-    show_progress_bar(st.session_state.current_step)
     
     st.markdown("""
         <div class='celebration-box'>
@@ -261,7 +257,6 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
 
     # Reminder setup
     st.session_state.current_step = 4
-    show_progress_bar(st.session_state.current_step)
     
     if hasattr(st.session_state, 'user_email') and st.session_state.user_email:
         st.markdown("""

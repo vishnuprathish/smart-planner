@@ -1,4 +1,4 @@
-import openai
+from openai import OpenAI
 import streamlit as st
 from typing import Tuple, List
 
@@ -7,14 +7,14 @@ class OpenAIService:
         """Initialize OpenAI service with API key."""
         try:
             self.api_key = api_key or st.secrets["OPENAI_API_KEY"]
-            openai.api_key = self.api_key
+            self.client = OpenAI(api_key=self.api_key)
         except Exception as e:
             raise Exception("Please set your OpenAI API key in .streamlit/secrets.toml")
 
     def generate_questions(self, goal: str) -> List[str]:
         """Generate relevant questions based on the user's goal."""
         try:
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": """You are an AI goal achievement expert. Your task is to ask 
@@ -23,15 +23,14 @@ class OpenAIService:
                      2. Specific challenges or obstacles
                      3. Previous attempts or experience
                      4. Available resources and support
-                     5. Preferred learning style or approach
                      Keep questions concise and focused."""},
-                    {"role": "user", "content": f"Generate 5 relevant questions to help create an action plan for this goal: {goal}"}
+                    {"role": "user", "content": f"Generate 4 relevant questions to help create an action plan for this goal: {goal}"}
                 ]
             )
             questions = response.choices[0].message.content.split('\n')
             # Clean up question format
             questions = [q.strip().replace('*', '').replace('-', '').strip() for q in questions if q.strip()]
-            return questions[:5]  # Ensure we only return 5 questions
+            return questions[:4]  # Ensure we only return 4 questions
         except Exception as e:
             st.error(f"Error generating questions: {str(e)}")
             return []
@@ -57,7 +56,7 @@ class OpenAIService:
             # Combine answers into a single string
             answers_text = "\n".join([f"Q: {q}\nA: {a}" for q, a in answers.items()])
             
-            response = openai.ChatCompletion.create(
+            response = self.client.chat.completions.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": """You are an AI goal achievement expert. Create a personalized action 
