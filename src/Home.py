@@ -4,14 +4,9 @@ from services.openai_service import OpenAIService
 from services.firebase_service import FirebaseService
 from components.progress_bar import show_progress_bar
 from components.welcome import show_welcome_section
-from utils.session import init_session_state
-import re
+from utils.session import init_session_state, is_valid_email
 
 # Helper functions
-def is_valid_email(email):
-    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
-    return re.match(pattern, email) is not None
-
 def all_questions_answered():
     if not st.session_state.questions:
         return False

@@ -1,4 +1,10 @@
 import streamlit as st
+import re
+
+def is_valid_email(email: str) -> bool:
+    """Validate email format."""
+    pattern = r'^[\w\.-]+@[\w\.-]+\.\w+$'
+    return re.match(pattern, email) is not None
 
 def init_session_state():
     """Initialize session state variables."""
@@ -20,10 +26,12 @@ def init_session_state():
     if 'answers' not in st.session_state:
         st.session_state.answers = {}
         
-    # Reminders and email
+    # User info
+    if 'user_email' not in st.session_state:
+        st.session_state.user_email = None
+        
+    # UI state
     if 'show_reminder_form' not in st.session_state:
         st.session_state.show_reminder_form = False
     if 'plan_saved' not in st.session_state:
         st.session_state.plan_saved = False
-    if 'user_email' not in st.session_state:
-        st.session_state.user_email = None
