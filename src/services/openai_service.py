@@ -1,8 +1,10 @@
-from openai import OpenAI
+import openai
 import streamlit as st
 from typing import List, Dict
 from pydantic import BaseModel, Field
 import json
+import os
+from pathlib import Path
 
 class GoalPlan(BaseModel):
     """Schema for the goal plan response."""
@@ -21,15 +23,32 @@ class OpenAIService:
     def __init__(self, api_key=None):
         """Initialize OpenAI service with API key."""
         try:
-            self.api_key = api_key or st.secrets["OPENAI_API_KEY"]
-            self.client = OpenAI(api_key=self.api_key)
+            # Try to get API key from environment first
+            self.api_key = api_key or os.getenv("OPENAI_API_KEY")
+            
+            # If not in environment, try to get from secrets file
+            if not self.api_key:
+                secrets_path = Path(__file__).parent.parent / ".streamlit" / "secrets.toml"
+                if secrets_path.exists():
+                    with open(secrets_path, 'r') as f:
+                        for line in f:
+                            if line.startswith("OPENAI_API_KEY"):
+                                self.api_key = line.split("=")[1].strip().strip('"').strip("'")
+                                break
+            
+            if not self.api_key:
+                raise Exception("OpenAI API key not found")
+                
+            # Set the API key for the openai module
+            openai.api_key = self.api_key
+            
         except Exception as e:
-            raise Exception("Please set your OpenAI API key in .streamlit/secrets.toml")
+            raise Exception(f"Error initializing OpenAI service: {str(e)}")
 
     def generate_questions(self, goal: str) -> List[str]:
         """Generate relevant questions based on the user's goal."""
         try:
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": """You are an AI goal achievement expert. Your task is to ask 
@@ -75,7 +94,7 @@ class OpenAIService:
             qa_pairs = [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
             qa_context = "\n\n".join(qa_pairs)
             
-            response = self.client.chat.completions.create(
+            response = openai.ChatCompletion.create(
                 model="gpt-4",
                 messages=[
                     {"role": "system", "content": """You are an AI goal achievement expert. Based on the user's goal and their answers to questions, create:
