@@ -8,6 +8,7 @@ from components.ui import get_pdf_download_link
 from utils.session import init_session_state, is_valid_email
 from test_data import get_test_goal
 import base64
+import sys
 
 # Helper functions
 def all_questions_answered():
@@ -34,20 +35,6 @@ def check_connectivity():
     except OSError:
         return False
 
-# Initialize services
-try:
-    openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
-    firebase_service = FirebaseService()
-    pdf_service = PDFService()
-except Exception as e:
-    st.error(f"Error initializing services: {str(e)}")
-    st.stop()
-
-# Load CSS
-css_path = Path(__file__).parent / "styles" / "main.css"
-with open(css_path) as f:
-    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
-
 # Initialize session state
 if 'current_step' not in st.session_state:
     st.session_state.current_step = 1
@@ -56,6 +43,31 @@ if 'current_step' not in st.session_state:
     st.session_state.user_email = None
 
 init_session_state()
+
+# Check if test mode is enabled via command line
+TEST_MODE_ENABLED = "--test-mode" in sys.argv
+
+# Initialize test mode defaults if enabled
+if TEST_MODE_ENABLED and 'test_mode' not in st.session_state:
+    st.session_state.test_mode = True
+    st.session_state.test_goal_type = "Fitness"
+    test_data = get_test_goal('fitness')
+    if test_data:
+        st.session_state.goal_input = test_data['goal']
+
+# Load CSS
+css_path = Path(__file__).parent / "styles" / "main.css"
+with open(css_path) as f:
+    st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+
+# Initialize services
+try:
+    openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
+    firebase_service = FirebaseService()
+    pdf_service = PDFService()
+except Exception as e:
+    st.error(f"Error initializing services: {str(e)}")
+    st.stop()
 
 # Check connectivity before proceeding
 if not check_connectivity():
@@ -69,48 +81,51 @@ if not check_connectivity():
     """)
     st.stop()
 
-# Add test mode in sidebar
-with st.sidebar:
-    st.markdown("### 🧪 Test Mode")
-    test_mode = st.checkbox("Enable Test Mode", key="test_mode")
-    
-    if test_mode:
-        test_goal_type = st.selectbox(
-            "Select a test goal",
-            ["Fitness", "Career", "Finance"],
-            key="test_goal_type"
-        )
+# Show welcome section
+show_welcome_section()
+
+# Add test mode in sidebar only if enabled
+if TEST_MODE_ENABLED:
+    with st.sidebar:
+        st.markdown("### 🧪 Test Mode")
+        test_mode = st.checkbox("Enable Test Mode", key="test_mode")
         
-        if st.button("Load Test Data"):
-            test_data = get_test_goal(test_goal_type.lower())
-            if test_data:
-                # Set the goal
-                st.session_state.goal_input = test_data['goal']
-                
-                # Set up questions and answers
-                questions = [
-                    "What's motivating you to achieve this goal?",
-                    "What obstacles might you face?",
-                    "What resources do you have available?",
-                    "How will you track your progress?",
-                    "What's your current situation regarding this goal?"
-                ]
-                answers = list(test_data['answers'].values())
-                
-                # Store questions in session state
-                st.session_state.questions = questions
-                
-                # Store answers with proper keys
-                for i, answer in enumerate(answers):
-                    st.session_state[f"answer_{i}"] = answer
-                
-                st.session_state.show_questions = True
-                st.rerun()
+        if test_mode:
+            test_goal_type = st.selectbox(
+                "Select a test goal",
+                ["Fitness", "Career", "Finance"],
+                key="test_goal_type"
+            )
+            
+            if st.button("Load Test Data"):
+                test_data = get_test_goal(test_goal_type.lower())
+                if test_data:
+                    # Set the goal
+                    st.session_state.goal_input = test_data['goal']
+                    
+                    # Set up questions and answers
+                    questions = [
+                        "What's motivating you to achieve this goal?",
+                        "What obstacles might you face?",
+                        "What resources do you have available?",
+                        "How will you track your progress?",
+                        "What's your current situation regarding this goal?"
+                    ]
+                    answers = list(test_data['answers'].values())
+                    
+                    # Store questions in session state
+                    st.session_state.questions = questions
+                    
+                    # Store answers with proper keys
+                    for i, answer in enumerate(answers):
+                        st.session_state[f"answer_{i}"] = answer
+                    
+                    st.session_state.show_questions = True
+                    st.rerun()
 
 # Streamlit app layout
 if not st.session_state.current_plan:
     st.session_state.current_step = 1
-    show_welcome_section()
     
     # Goal input section
     st.markdown("<div class='info-box' style='margin-top: 0.5em;'>", unsafe_allow_html=True)
