@@ -188,52 +188,80 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
     
     st.markdown("""
         <div class='strategy-box'>
-            <h3 style='color: #FF4B4B; margin-bottom: 1em;'>🎯 Your Success Strategy</h3>
-            <div style='background: #2D2D2D; padding: 1.2em; border-radius: 10px; margin-bottom: 1em;'>
+            <h3 style='color: #FF4B4B; margin-bottom: 1.5em; text-align: center; font-size: 1.8em;'>
+                🎯 Strategic Initiatives
+            </h3>
+            <div style='background: #2D2D2D; padding: 1.5em; border-radius: 15px; margin-bottom: 1.5em; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'>
     """, unsafe_allow_html=True)
     
-    # Display each strategy point
-    strategy_points = [point for point in st.session_state.current_plan['tasks'].split('\n') if point.strip()]
-    for i, point in enumerate(strategy_points, 1):
-        st.markdown(f"""
-            <div style='margin-bottom: 0.8em;'>
-                <span style='color: #FF4B4B; font-weight: 600;'>{i}.</span> {point}
-            </div>
-        """, unsafe_allow_html=True)
+    # Display each strategic initiative
+    initiatives = [point for point in st.session_state.current_plan['initiatives'].split('\n') if point.strip()]
+    for i, initiative in enumerate(initiatives, 1):
+        # Split the initiative into title and description if it contains a colon
+        parts = initiative.split(':', 1)
+        if len(parts) == 2:
+            title, description = parts
+            st.markdown(f"""
+                <div style='margin-bottom: 1.5em; background: #383838; padding: 1.2em; border-radius: 10px; border-left: 4px solid #FF4B4B;'>
+                    <div style='display: flex; align-items: center; margin-bottom: 0.8em;'>
+                        <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
+                                display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
+                            {i}
+                        </div>
+                        <div style='color: #FF4B4B; font-weight: 600; font-size: 1.1em;'>{title}</div>
+                    </div>
+                    <div style='margin-left: 40px; color: #E0E0E0; line-height: 1.5;'>{description}</div>
+                </div>
+            """, unsafe_allow_html=True)
+        else:
+            # Fallback for initiatives without a title
+            st.markdown(f"""
+                <div style='margin-bottom: 1.5em; background: #383838; padding: 1.2em; border-radius: 10px; border-left: 4px solid #FF4B4B;'>
+                    <div style='display: flex; align-items: flex-start;'>
+                        <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
+                                display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
+                            {i}
+                        </div>
+                        <div style='flex: 1; color: #E0E0E0; line-height: 1.5;'>{initiative}</div>
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
     
     # Display micro-habits
     st.markdown("""
-        <h3 style='color: #FF4B4B; margin: 1.5em 0 1em;'>✨ Daily Micro-habits</h3>
-        <div style='background: #2D2D2D; padding: 1.2em; border-radius: 10px;'>
+        <h3 style='color: #FF4B4B; margin: 2em 0 1em; text-align: center; font-size: 1.8em;'>✨ Daily Micro-habits</h3>
+        <div style='background: #2D2D2D; padding: 1.5em; border-radius: 15px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'>
     """, unsafe_allow_html=True)
     
     micro_habits = [habit for habit in st.session_state.current_plan['habits'].split('\n') if habit.strip()]
     for i, habit in enumerate(micro_habits, 1):
         st.markdown(f"""
-            <div style='display: flex; align-items: flex-start; margin-bottom: 0.8em;'>
-                <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 24px; height: 24px; 
-                           display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0;'>
+            <div style='display: flex; align-items: flex-start; margin-bottom: 1em; background: #383838; padding: 1em; border-radius: 10px;'>
+                <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
+                           display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
                     {i}
                 </div>
-                <div style='flex: 1;'>{habit}</div>
+                <div style='flex: 1; color: #E0E0E0; line-height: 1.5;'>{habit}</div>
             </div>
         """, unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Add PDF download button after micro-habits
+    # Add PDF download button after micro-habits with improved styling
+    st.markdown("<div style='text-align: center; margin-top: 2em;'>", unsafe_allow_html=True)
     pdf_path = pdf_service.create_pdf(
         st.session_state.current_plan['goal'],
-        strategy_points,
+        initiatives,
         micro_habits
     )
     st.markdown(
-        get_pdf_download_link(pdf_path, "📥 Download Plan as PDF"),
+        get_pdf_download_link(pdf_path, "📥 Download Your Strategic Plan"),
         unsafe_allow_html=True
     )
-    
+    st.markdown("</div>", unsafe_allow_html=True)
+
     # Email reminder section
     if not st.session_state.user_email:
         st.markdown("""
@@ -269,7 +297,7 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
                 questions=st.session_state.current_plan['questions'],
                 answers=st.session_state.current_plan['answers'],
                 time_commitment=st.session_state.current_plan['time_commitment'],
-                tasks=st.session_state.current_plan['tasks'],
+                initiatives=st.session_state.current_plan['initiatives'],
                 habits=st.session_state.current_plan['habits'],
                 reminder_settings={
                     'email': st.session_state.user_email,

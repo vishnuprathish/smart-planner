@@ -5,13 +5,14 @@ from pydantic import BaseModel, Field
 import json
 import os
 from pathlib import Path
+from config.prompts import QUESTIONS_CONFIG, PLAN_CONFIG
 
 class GoalPlan(BaseModel):
     """Schema for the goal plan response."""
-    tasks: List[str] = Field(
+    strategic_initiatives: List[str] = Field(
         min_items=3,
         max_items=5,
-        description="List of 3-5 strategic action items to achieve the goal"
+        description="List of 3-5 strategic initiatives to achieve the goal"
     )
     habits: List[str] = Field(
         min_items=3,
@@ -49,25 +50,10 @@ class OpenAIService:
         """Generate relevant questions based on the user's goal."""
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model=QUESTIONS_CONFIG.model,
                 messages=[
-                    {"role": "system", "content": """You are an AI goal achievement expert. Your task is to ask 
-                     relevant questions that will help create a personalized action plan. Ask questions about:
-                     1. Current situation and starting point
-                     2. Specific challenges or obstacles
-                     3. Previous attempts or experience
-                     4. Available resources and support
-                     
-                     Return EXACTLY 4 questions in this JSON format:
-                     {
-                         "questions": [
-                             "Question 1",
-                             "Question 2",
-                             "Question 3",
-                             "Question 4"
-                         ]
-                     }"""},
-                    {"role": "user", "content": f"Generate 4 relevant questions to help create an action plan for this goal: {goal}"}
+                    {"role": "system", "content": QUESTIONS_CONFIG.system_prompt},
+                    {"role": "user", "content": QUESTIONS_CONFIG.user_prompt_template.format(goal=goal)}
                 ]
             )
             
@@ -95,37 +81,13 @@ class OpenAIService:
             qa_context = "\n\n".join(qa_pairs)
             
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model=PLAN_CONFIG.model,
                 messages=[
-                    {"role": "system", "content": """You are an AI goal achievement expert. Based on the user's goal and their answers to questions, create:
-                     1. A list of 3-5 strategic action items (tasks)
-                     2. A list of 3-5 daily micro-habits that will support their goal
-                     
-                     Return your response in this EXACT JSON format:
-                     {
-                         "tasks": [
-                             "Task 1",
-                             "Task 2",
-                             "Task 3"
-                         ],
-                         "habits": [
-                             "Habit 1",
-                             "Habit 2",
-                             "Habit 3"
-                         ]
-                     }
-                     
-                     Each task should be specific, actionable, and aligned with their goal.
-                     Each habit should be small, manageable, and directly support their goal.
-                     """},
-                    {"role": "user", "content": f"""
-                    Goal: {goal}
-                    
-                    Context from questions:
-                    {qa_context}
-                    
-                    Generate a strategic plan with tasks and habits in the specified JSON format.
-                    """}
+                    {"role": "system", "content": PLAN_CONFIG.system_prompt},
+                    {"role": "user", "content": PLAN_CONFIG.user_prompt_template.format(
+                        goal=goal,
+                        qa_context=qa_context
+                    )}
                 ]
             )
             
@@ -138,7 +100,7 @@ class OpenAIService:
                     'goal': goal,
                     'questions': questions,
                     'answers': answers,
-                    'tasks': '\n'.join(plan.tasks),
+                    'initiatives': '\n'.join(plan.strategic_initiatives),
                     'habits': '\n'.join(plan.habits)
                 }
             except json.JSONDecodeError as e:
