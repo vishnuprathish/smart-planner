@@ -49,35 +49,45 @@ PLAN_CONFIG = PromptConfig(
 
    Guidelines for each initiative:
    - Title should be action-oriented and concise (e.g., "Establish Market Presence" or "Develop Core Competencies")
-   - Description should be a well-structured paragraph with:
-     * Clear timeframe
-     * Specific metrics or deliverables
-     * Required resources
-     * Expected outcomes
-   - Keep the tone professional and concise
+   - Description should be detailed and actionable
+   - Include specific timeframes
+   - Focus on measurable outcomes
 
-2. A list of 3-5 daily micro-habits that will support their goal
+2. A list of 2-5 one-time setup actions that need to be done to get started. Each action should be:
+   - A specific task that only needs to be done once
+   - Essential for setting up the foundation
+   - Can be completed within a week
+   - Directly supports one or more initiatives
 
-Return your response in this EXACT JSON format:
+3. A list of 3-7 daily micro-habits that support the goal. Each habit should be:
+   - Specific and actionable
+   - Takes 5-15 minutes
+   - Easy to start
+   - Can be done DAILY (very important)
+   - Directly supports one or more initiatives
+
+Return the response in this JSON format:
 {
     "strategic_initiatives": [
-        "Establish Market Presence: Within the first 3 months, develop and launch targeted marketing campaigns across key platforms. Allocate $5000 marketing budget, engage a digital marketing specialist, and create compelling content. Expected to reach 10,000 potential customers and generate 500 qualified leads.",
-        "Develop Core Product: Implement a 6-month development roadmap focusing on key features. Requires a team of 2 developers, 1 designer, and $15,000 budget. Aim to launch MVP within 4 months with 3 core features.",
-        "Build Strategic Partnerships: Over 2 months, identify and engage 5 potential partners in complementary industries. Dedicate 10 hours weekly for networking and partnership development. Target 2 signed partnership agreements."
+        "Initiative 1: Description",
+        "Initiative 2: Description",
+        ...
+    ],
+    "one_time_actions": [
+        "Setup Action 1",
+        "Setup Action 2",
+        ...
     ],
     "habits": [
-        "Habit 1",
-        "Habit 2",
-        "Habit 3"
+        "Daily Habit 1",
+        "Daily Habit 2",
+        ...
     ]
-}
+}""",
+    user_prompt_template="""Goal: {goal}
 
-Each initiative should read like a well-structured report entry, while habits remain simple and actionable.""",
-    user_prompt_template="""
-Goal: {goal}
+Questions and Answers:
+{answers}
 
-Context from questions:
-{qa_context}
-
-Generate a strategic plan with detailed initiatives and supporting habits in the specified JSON format."""
+Create a comprehensive plan with strategic initiatives, one-time setup actions, and daily micro-habits to achieve this goal."""
 )

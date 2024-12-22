@@ -136,8 +136,9 @@ if not st.session_state.current_plan:
         </div>
     """, unsafe_allow_html=True)
     
-    goal = st.text_input("", key="goal_input", placeholder="Enter your goal here...", 
-                        help="Be specific, measurable, and time-bound")
+    goal = st.text_input("Your Goal", key="goal_input", placeholder="Enter your goal here...", 
+                        help="Be specific, measurable, and time-bound",
+                        label_visibility="collapsed")
     
    
     
@@ -152,9 +153,10 @@ if not st.session_state.current_plan:
     """, unsafe_allow_html=True)
 
     email = st.text_input(
-        "",
+        "Email Address",
         placeholder="Enter your email (optional)",
-        key="email_input"
+        key="email_input",
+        label_visibility="collapsed"
     )
         
     if email and not is_valid_email(email):
@@ -198,14 +200,16 @@ if st.session_state.show_questions and st.session_state.questions and not st.ses
             st.text_input(
                 questions[i],
                 key=f"answer_{i}",
-                placeholder="Your answer here..."
+                placeholder="Your answer here...",
+                label_visibility="visible"
             )
     with col2:
         for i in range(mid_point, len(questions)):
             st.text_input(
                 questions[i],
                 key=f"answer_{i}",
-                placeholder="Your answer here..."
+                placeholder="Your answer here...",
+                label_visibility="visible"
             )
 
     st.markdown("""
@@ -283,6 +287,9 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
         </style>
     """, unsafe_allow_html=True)
     
+    # Display the plan
+    st.markdown("<h3 style='text-align: center; color: #1f1f1f;'>🎯 Your Success Plan</h3>", unsafe_allow_html=True)
+    
     st.markdown("""
         <div class='strategy-box'>
             <h3 style='color: #FF4B4B; margin-bottom: 1em; text-align: center; font-size: min(1.8em, 7vw);'>🎯 Strategic Initiatives</h3>
@@ -322,16 +329,36 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
                 </div>
             """, unsafe_allow_html=True)
     
+    st.markdown("</div></div>", unsafe_allow_html=True)
+    
+    # Display one-time actions
+    st.markdown("""
+        <h3 style='color: #FF4B4B; margin: 1.5em 0 1em; text-align: center; font-size: min(1.8em, 7vw);'>🔧 One-time Setup Actions</h3>
+        <div style='background: #2D2D2D; padding: min(1.2em, 4vw); border-radius: 10px;'>
+    """, unsafe_allow_html=True)
+    
+    one_time_actions = [action for action in st.session_state.current_plan['one_time_actions'].split('\n') if action.strip()]
+    for i, action in enumerate(one_time_actions, 1):
+        st.markdown(f"""
+            <div style='display: flex; align-items: flex-start; margin-bottom: 1em; background: #383838; padding: min(1em, 4vw); border-radius: 10px; gap: min(12px, 3vw);'>
+                <div style='background: #FF4B4B; color: white; border-radius: 50%; min-width: 28px; height: 28px; 
+                           display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;'>
+                    {i}
+                </div>
+                <div style='flex: 1; color: #E0E0E0; line-height: 1.5; font-size: min(1em, 4vw);'>{action}</div>
+            </div>
+        """, unsafe_allow_html=True)
+    
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Display micro-habits
+    # Display daily micro-habits
     st.markdown("""
         <h3 style='color: #FF4B4B; margin: 1.5em 0 1em; text-align: center; font-size: min(1.8em, 7vw);'>✨ Daily Micro-habits</h3>
         <div style='background: #2D2D2D; padding: min(1.2em, 4vw); border-radius: 10px;'>
     """, unsafe_allow_html=True)
     
-    micro_habits = [habit for habit in st.session_state.current_plan['habits'].split('\n') if habit.strip()]
-    for i, habit in enumerate(micro_habits, 1):
+    habits = [habit for habit in st.session_state.current_plan['habits'].split('\n') if habit.strip()]
+    for i, habit in enumerate(habits, 1):
         st.markdown(f"""
             <div style='display: flex; align-items: flex-start; margin-bottom: 1em; background: #383838; padding: min(1em, 4vw); border-radius: 10px; gap: min(12px, 3vw);'>
                 <div style='background: #FF4B4B; color: white; border-radius: 50%; min-width: 28px; height: 28px; 
@@ -373,17 +400,19 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
         </div>
     """, unsafe_allow_html=True)
     
+    # Generate PDF
     pdf_path = pdf_service.create_pdf(
-        st.session_state.current_plan['goal'],
-        initiatives,
-        micro_habits
+        goal=st.session_state.current_plan['goal'],
+        strategy_points=initiatives,
+        one_time_actions=one_time_actions,
+        micro_habits=habits
     )
+    
     st.markdown(
         get_pdf_download_link(pdf_path, "📥 Download Your Strategic Plan"),
         unsafe_allow_html=True
     )
-    st.markdown("</div>", unsafe_allow_html=True)
-
+    
     # Email reminder section
     if not st.session_state.user_email:
         st.markdown("""
@@ -395,9 +424,10 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
         """, unsafe_allow_html=True)
         
         email = st.text_input(
-            "",
+            "Email Address",
             placeholder="Enter your email (optional)",
-            key="email_reminder"
+            key="email_reminder",
+            label_visibility="collapsed"
         )
         
         if email and not is_valid_email(email):

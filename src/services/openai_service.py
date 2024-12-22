@@ -14,10 +14,15 @@ class GoalPlan(BaseModel):
         max_items=5,
         description="List of 3-5 strategic initiatives to achieve the goal"
     )
+    one_time_actions: List[str] = Field(
+        min_items=2,
+        max_items=5,
+        description="List of 2-5 one-time setup actions to get started"
+    )
     habits: List[str] = Field(
         min_items=3,
-        max_items=5,
-        description="List of 3-5 daily micro-habits that support the goal"
+        max_items=7,
+        description="List of 3-7 daily micro-habits that support the goal"
     )
 
 class OpenAIService:
@@ -92,7 +97,7 @@ class OpenAIService:
         try:
             # Combine questions and answers
             qa_pairs = [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
-            qa_context = "\n\n".join(qa_pairs)
+            qa_text = "\n\n".join(qa_pairs)
             
             response = openai.ChatCompletion.create(
                 model=PLAN_CONFIG.model,
@@ -100,7 +105,7 @@ class OpenAIService:
                     {"role": "system", "content": PLAN_CONFIG.system_prompt},
                     {"role": "user", "content": PLAN_CONFIG.user_prompt_template.format(
                         goal=goal,
-                        qa_context=qa_context
+                        answers=qa_text
                     )}
                 ]
             )
@@ -115,6 +120,7 @@ class OpenAIService:
                     'questions': questions,
                     'answers': answers,
                     'initiatives': '\n'.join(plan.strategic_initiatives),
+                    'one_time_actions': '\n'.join(plan.one_time_actions),
                     'habits': '\n'.join(plan.habits)
                 }
             except (json.JSONDecodeError, KeyError, TypeError) as e:

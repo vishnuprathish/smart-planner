@@ -14,8 +14,8 @@ class PDFService:
     def __init__(self):
         pass
 
-    def create_pdf(self, goal: str, strategy_points: List[str], micro_habits: List[str]) -> str:
-        """Create a PDF document with the goal, strategy points, and micro-habits."""
+    def create_pdf(self, goal: str, strategy_points: List[str], one_time_actions: List[str], micro_habits: List[str]) -> str:
+        """Create a PDF document with the goal, strategy points, one-time actions, and micro-habits."""
         # Create a unique filename
         filename = f"goal_plan_{int(time.time())}.pdf"
         filepath = os.path.join(tempfile.gettempdir(), filename)
@@ -53,12 +53,12 @@ class PDFService:
         )
         
         subheading_style = ParagraphStyle(
-            'CustomSubheading',
+            'CustomSubHeading',
             parent=styles['Heading2'],
             fontSize=14,
-            spaceAfter=12,
-            textColor=colors.HexColor('#FF4B4B'),
-            fontWeight='bold'
+            spaceBefore=15,
+            spaceAfter=10,
+            textColor=colors.HexColor('#666666')
         )
         
         body_style = ParagraphStyle(
@@ -66,21 +66,21 @@ class PDFService:
             parent=styles['Normal'],
             fontSize=11,
             spaceAfter=15,
-            leading=16
+            leading=16,
+            textColor=colors.HexColor('#2C3E50')
         )
         
-        # Create the content
+        # Build the document content
         content = []
         
-        # Add title and goal
-        content.append(Paragraph("Strategic Action Plan", title_style))
+        # Title and Goal
+        content.append(Paragraph("Your Goal Achievement Plan", title_style))
         content.append(Spacer(1, 20))
-        content.append(Paragraph("Goal", heading_style))
-        content.append(Paragraph(goal, body_style))
-        content.append(Spacer(1, 20))
+        content.append(Paragraph(goal, heading_style))
+        content.append(Spacer(1, 30))
         
-        # Add Strategic Initiatives
-        content.append(Paragraph("Strategic Initiatives", heading_style))
+        # Strategic Initiatives
+        content.append(Paragraph("🎯 Strategic Initiatives", heading_style))
         content.append(Spacer(1, 10))
         
         # Create a table for initiatives
@@ -125,8 +125,39 @@ class PDFService:
         
         content.append(Spacer(1, 30))
         
-        # Add Micro-habits
-        content.append(Paragraph("Daily Micro-habits", heading_style))
+        # One-time Setup Actions
+        content.append(Paragraph("🔧 One-time Setup Actions", heading_style))
+        content.append(Paragraph("Complete these actions once to set up your foundation:", subheading_style))
+        content.append(Spacer(1, 10))
+        
+        # Create a table for one-time actions
+        action_data = []
+        for i, action in enumerate(one_time_actions, 1):
+            action_data.append([f"{i}", Paragraph(action, body_style)])
+        
+        if action_data:
+            action_table = Table(
+                action_data,
+                colWidths=[30, 450],
+                style=TableStyle([
+                    ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#FF4B4B')),
+                    ('TEXTCOLOR', (0, 0), (0, -1), colors.white),
+                    ('ALIGN', (0, 0), (0, -1), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, -1), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 11),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 12),
+                    ('TOPPADDING', (0, 0), (-1, -1), 12),
+                    ('GRID', (0, 0), (-1, -1), 1, colors.lightgrey),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ])
+            )
+            content.append(action_table)
+        
+        content.append(Spacer(1, 30))
+        
+        # Daily Micro-habits
+        content.append(Paragraph("✨ Daily Micro-habits", heading_style))
+        content.append(Paragraph("Practice these habits every day to build momentum:", subheading_style))
         content.append(Spacer(1, 10))
         
         # Create a table for habits
@@ -135,7 +166,6 @@ class PDFService:
             habit_data.append([f"{i}", Paragraph(habit, body_style)])
         
         if habit_data:
-            # Create and style the habits table
             habit_table = Table(
                 habit_data,
                 colWidths=[30, 450],
@@ -169,5 +199,4 @@ class PDFService:
         
         # Build the PDF
         doc.build(content)
-        
         return filepath
