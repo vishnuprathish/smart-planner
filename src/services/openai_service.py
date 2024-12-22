@@ -1,6 +1,6 @@
 import openai
 import streamlit as st
-from typing import List, Dict
+from typing import List, Dict, Optional
 from pydantic import BaseModel, Field
 import json
 import os
@@ -62,18 +62,32 @@ class OpenAIService:
                 response_data = json.loads(response.choices[0].message.content)
                 questions = response_data.get("questions", [])
                 return questions[:4]
-            except json.JSONDecodeError:
-                # Fallback: split by newlines if JSON parsing fails
-                questions = response.choices[0].message.content.split('\n')
-                questions = [q.strip().replace('*', '').replace('-', '').strip() 
-                           for q in questions if q.strip()]
-                return questions[:4]
-            
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                st.error("Error processing OpenAI response. Please try again.")
+                return []
+                
+        except openai.error.APIError as e:
+            st.error("OpenAI API error. Please try again in a few moments.")
+            return []
+        except openai.error.Timeout as e:
+            st.error("Request timed out. Please try again.")
+            return []
+        except openai.error.RateLimitError as e:
+            st.error("Rate limit exceeded. Please try again in a few moments.")
+            return []
+        except openai.error.APIConnectionError as e:
+            st.error("""
+                Unable to connect to OpenAI. Please check your internet connection and try:
+                1. Refreshing the page
+                2. Checking if you're connected to the internet
+                3. Waiting a few moments and trying again
+            """)
+            return []
         except Exception as e:
-            st.error(f"Error generating questions: {str(e)}")
+            st.error(f"An unexpected error occurred. Please try again.")
             return []
 
-    def generate_plan(self, goal: str, questions: List[str], answers: List[str]) -> Dict:
+    def generate_plan(self, goal: str, questions: List[str], answers: List[str]) -> Optional[Dict]:
         """Generate a personalized action plan based on the user's goal and answers."""
         try:
             # Combine questions and answers
@@ -103,10 +117,27 @@ class OpenAIService:
                     'initiatives': '\n'.join(plan.strategic_initiatives),
                     'habits': '\n'.join(plan.habits)
                 }
-            except json.JSONDecodeError as e:
-                st.error("Error: The AI response was not in the correct format. Please try again.")
+            except (json.JSONDecodeError, KeyError, TypeError) as e:
+                st.error("Error processing the plan. Please try again.")
                 return None
-            
+                
+        except openai.error.APIError as e:
+            st.error("OpenAI API error. Please try again in a few moments.")
+            return None
+        except openai.error.Timeout as e:
+            st.error("Request timed out. Please try again.")
+            return None
+        except openai.error.RateLimitError as e:
+            st.error("Rate limit exceeded. Please try again in a few moments.")
+            return None
+        except openai.error.APIConnectionError as e:
+            st.error("""
+                Unable to connect to OpenAI. Please check your internet connection and try:
+                1. Refreshing the page
+                2. Checking if you're connected to the internet
+                3. Waiting a few moments and trying again
+            """)
+            return None
         except Exception as e:
-            st.error(f"Error generating plan: {str(e)}")
+            st.error(f"An unexpected error occurred. Please try again.")
             return None

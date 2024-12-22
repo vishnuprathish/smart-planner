@@ -4,7 +4,9 @@ from services.openai_service import OpenAIService
 from services.firebase_service import FirebaseService
 from services.pdf_service import PDFService
 from components.welcome import show_welcome_section
+from components.ui import get_pdf_download_link
 from utils.session import init_session_state, is_valid_email
+from test_data import get_test_goal
 import base64
 
 # Helper functions
@@ -23,6 +25,15 @@ def reset_form():
     st.session_state.show_reminder_form = False
     st.session_state.plan_saved = False
 
+def check_connectivity():
+    """Check if we can connect to OpenAI's API."""
+    try:
+        import socket
+        socket.create_connection(("api.openai.com", 443), timeout=5)
+        return True
+    except OSError:
+        return False
+
 # Initialize services
 try:
     openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
@@ -32,21 +43,69 @@ except Exception as e:
     st.error(f"Error initializing services: {str(e)}")
     st.stop()
 
-def get_pdf_download_link(pdf_path, button_text):
-    """Generate a download link for the PDF file."""
-    with open(pdf_path, "rb") as f:
-        bytes = f.read()
-        b64 = base64.b64encode(bytes).decode()
-        href = f'<a href="data:application/pdf;base64,{b64}" download="smart_goal_plan.pdf" class="download-button">{button_text}</a>'
-        return href
-
 # Load CSS
 css_path = Path(__file__).parent / "styles" / "main.css"
 with open(css_path) as f:
     st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
 
 # Initialize session state
+if 'current_step' not in st.session_state:
+    st.session_state.current_step = 1
+    st.session_state.current_plan = None
+    st.session_state.plan_saved = False
+    st.session_state.user_email = None
+
 init_session_state()
+
+# Check connectivity before proceeding
+if not check_connectivity():
+    st.error("""
+        ⚠️ Unable to connect to the internet. Please:
+        1. Check your internet connection
+        2. Refresh the page
+        3. Try again in a few moments
+        
+        If the problem persists, your network might be blocking the connection.
+    """)
+    st.stop()
+
+# Add test mode in sidebar
+with st.sidebar:
+    st.markdown("### 🧪 Test Mode")
+    test_mode = st.checkbox("Enable Test Mode", key="test_mode")
+    
+    if test_mode:
+        test_goal_type = st.selectbox(
+            "Select a test goal",
+            ["Fitness", "Career", "Finance"],
+            key="test_goal_type"
+        )
+        
+        if st.button("Load Test Data"):
+            test_data = get_test_goal(test_goal_type.lower())
+            if test_data:
+                # Set the goal
+                st.session_state.goal_input = test_data['goal']
+                
+                # Set up questions and answers
+                questions = [
+                    "What's motivating you to achieve this goal?",
+                    "What obstacles might you face?",
+                    "What resources do you have available?",
+                    "How will you track your progress?",
+                    "What's your current situation regarding this goal?"
+                ]
+                answers = list(test_data['answers'].values())
+                
+                # Store questions in session state
+                st.session_state.questions = questions
+                
+                # Store answers with proper keys
+                for i, answer in enumerate(answers):
+                    st.session_state[f"answer_{i}"] = answer
+                
+                st.session_state.show_questions = True
+                st.rerun()
 
 # Streamlit app layout
 if not st.session_state.current_plan:
@@ -64,6 +123,9 @@ if not st.session_state.current_plan:
     
     goal = st.text_input("", key="goal_input", placeholder="Enter your goal here...", 
                         help="Be specific, measurable, and time-bound")
+    
+   
+    
     
     # Email collection with clear benefits
     st.markdown("""
@@ -186,43 +248,61 @@ if st.session_state.show_questions and st.session_state.questions and not st.ses
 if st.session_state.current_plan and not st.session_state.plan_saved:
     st.session_state.current_step = 3
     
+    # Add custom CSS for responsiveness
+    st.markdown("""
+        <style>
+            @media (max-width: 768px) {
+                .strategy-box {
+                    padding: 0 !important;
+                }
+                .initiative-card {
+                    margin: 0.8em 0 !important;
+                }
+                .initiative-title {
+                    font-size: 0.9em !important;
+                }
+                .initiative-desc {
+                    font-size: 0.85em !important;
+                }
+            }
+        </style>
+    """, unsafe_allow_html=True)
+    
     st.markdown("""
         <div class='strategy-box'>
-            <h3 style='color: #FF4B4B; margin-bottom: 1.5em; text-align: center; font-size: 1.8em;'>
-                🎯 Strategic Initiatives
-            </h3>
-            <div style='background: #2D2D2D; padding: 1.5em; border-radius: 15px; margin-bottom: 1.5em; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'>
+            <h3 style='color: #FF4B4B; margin-bottom: 1em; text-align: center; font-size: min(1.8em, 7vw);'>🎯 Strategic Initiatives</h3>
+            <div style='background: #2D2D2D; padding: min(1.2em, 4vw); border-radius: 10px; margin-bottom: 1em;'>
     """, unsafe_allow_html=True)
     
     # Display each strategic initiative
     initiatives = [point for point in st.session_state.current_plan['initiatives'].split('\n') if point.strip()]
     for i, initiative in enumerate(initiatives, 1):
-        # Split the initiative into title and description if it contains a colon
         parts = initiative.split(':', 1)
         if len(parts) == 2:
             title, description = parts
             st.markdown(f"""
-                <div style='margin-bottom: 1.5em; background: #383838; padding: 1.2em; border-radius: 10px; border-left: 4px solid #FF4B4B;'>
-                    <div style='display: flex; align-items: center; margin-bottom: 0.8em;'>
-                        <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
-                                display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
+                <div class='initiative-card' style='margin-bottom: 1.5em; background: #383838; padding: min(1.2em, 4vw); border-radius: 10px; border-left: 4px solid #FF4B4B;'>
+                    <div style='display: flex; align-items: flex-start; gap: min(12px, 3vw);'>
+                        <div style='background: #FF4B4B; color: white; border-radius: 50%; min-width: 28px; height: 28px; 
+                                display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;'>
                             {i}
                         </div>
-                        <div style='color: #FF4B4B; font-weight: 600; font-size: 1.1em;'>{title}</div>
+                        <div style='flex: 1;'>
+                            <div class='initiative-title' style='color: #FF4B4B; font-weight: 600; font-size: min(1.1em, 4.5vw); margin-bottom: 0.5em;'>{title}</div>
+                            <div class='initiative-desc' style='color: #E0E0E0; line-height: 1.5; font-size: min(1em, 4vw);'>{description}</div>
+                        </div>
                     </div>
-                    <div style='margin-left: 40px; color: #E0E0E0; line-height: 1.5;'>{description}</div>
                 </div>
             """, unsafe_allow_html=True)
         else:
-            # Fallback for initiatives without a title
             st.markdown(f"""
-                <div style='margin-bottom: 1.5em; background: #383838; padding: 1.2em; border-radius: 10px; border-left: 4px solid #FF4B4B;'>
-                    <div style='display: flex; align-items: flex-start;'>
-                        <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
-                                display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
+                <div class='initiative-card' style='margin-bottom: 1.5em; background: #383838; padding: min(1.2em, 4vw); border-radius: 10px; border-left: 4px solid #FF4B4B;'>
+                    <div style='display: flex; align-items: flex-start; gap: min(12px, 3vw);'>
+                        <div style='background: #FF4B4B; color: white; border-radius: 50%; min-width: 28px; height: 28px; 
+                                display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;'>
                             {i}
                         </div>
-                        <div style='flex: 1; color: #E0E0E0; line-height: 1.5;'>{initiative}</div>
+                        <div class='initiative-desc' style='flex: 1; color: #E0E0E0; line-height: 1.5; font-size: min(1em, 4vw);'>{initiative}</div>
                     </div>
                 </div>
             """, unsafe_allow_html=True)
@@ -231,26 +311,53 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
     
     # Display micro-habits
     st.markdown("""
-        <h3 style='color: #FF4B4B; margin: 2em 0 1em; text-align: center; font-size: 1.8em;'>✨ Daily Micro-habits</h3>
-        <div style='background: #2D2D2D; padding: 1.5em; border-radius: 15px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);'>
+        <h3 style='color: #FF4B4B; margin: 1.5em 0 1em; text-align: center; font-size: min(1.8em, 7vw);'>✨ Daily Micro-habits</h3>
+        <div style='background: #2D2D2D; padding: min(1.2em, 4vw); border-radius: 10px;'>
     """, unsafe_allow_html=True)
     
     micro_habits = [habit for habit in st.session_state.current_plan['habits'].split('\n') if habit.strip()]
     for i, habit in enumerate(micro_habits, 1):
         st.markdown(f"""
-            <div style='display: flex; align-items: flex-start; margin-bottom: 1em; background: #383838; padding: 1em; border-radius: 10px;'>
-                <div style='background: #FF4B4B; color: white; border-radius: 50%; width: 28px; height: 28px; 
-                           display: flex; align-items: center; justify-content: center; margin-right: 12px; flex-shrink: 0; font-weight: bold;'>
+            <div style='display: flex; align-items: flex-start; margin-bottom: 1em; background: #383838; padding: min(1em, 4vw); border-radius: 10px; gap: min(12px, 3vw);'>
+                <div style='background: #FF4B4B; color: white; border-radius: 50%; min-width: 28px; height: 28px; 
+                           display: flex; align-items: center; justify-content: center; flex-shrink: 0; font-weight: bold;'>
                     {i}
                 </div>
-                <div style='flex: 1; color: #E0E0E0; line-height: 1.5;'>{habit}</div>
+                <div style='flex: 1; color: #E0E0E0; line-height: 1.5; font-size: min(1em, 4vw);'>{habit}</div>
             </div>
         """, unsafe_allow_html=True)
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Add PDF download button after micro-habits with improved styling
-    st.markdown("<div style='text-align: center; margin-top: 2em;'>", unsafe_allow_html=True)
+    # Add PDF download button with responsive styling
+    st.markdown("""
+        <div style='text-align: center; margin-top: min(2em, 6vw);'>
+            <style>
+                .download-button {
+                    background-color: #FF4B4B;
+                    color: white;
+                    padding: 1em 2em;
+                    text-decoration: none;
+                    border-radius: 8px;
+                    font-weight: 600;
+                    display: inline-block;
+                    transition: background-color 0.3s;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                }
+                .download-button:hover {
+                    background-color: #E43E3E;
+                }
+                @media (max-width: 768px) {
+                    .download-button {
+                        width: 100% !important;
+                        padding: 0.8em !important;
+                        font-size: 0.9em !important;
+                    }
+                }
+            </style>
+        </div>
+    """, unsafe_allow_html=True)
+    
     pdf_path = pdf_service.create_pdf(
         st.session_state.current_plan['goal'],
         initiatives,
@@ -285,7 +392,7 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
         email = st.session_state.user_email
     
     # Save button
-    st.markdown("<div style='margin-top: 2em;'>", unsafe_allow_html=True)
+    st.markdown("<div style='margin-top: min(2em, 6vw);'>", unsafe_allow_html=True)
     if st.button("Save My Plan", type="primary"):
         if email:
             st.session_state.user_email = email
