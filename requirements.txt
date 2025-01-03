@@ -3,4 +3,5 @@ openai==0.28.1
 firebase-admin==6.2.0
 reportlab==4.0.8
 python-dotenv==1.0.0
-pydantic==2.5.3
+pydantic==1.10.13
+pyrebase4==4.7.1

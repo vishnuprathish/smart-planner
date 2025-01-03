@@ -49,7 +49,7 @@ if check_password():
     # Calculate metrics
     total_goals = len(goals)
     goals_with_reminders = sum(1 for goal in goals if 'reminder_settings' in goal and goal['reminder_settings'])
-    avg_time = sum(goal['time_commitment'] for goal in goals) / total_goals if total_goals > 0 else 0
+    avg_time = sum(int(goal['time_commitment']) if isinstance(goal['time_commitment'], int) else int(goal['time_commitment']) for goal in goals if isinstance(goal['time_commitment'], (int, str)) and (isinstance(goal['time_commitment'], str) and goal['time_commitment'].isdigit() or isinstance(goal['time_commitment'], int))) / total_goals if total_goals > 0 else 0
     
     # Display metrics
     col1, col2, col3 = st.columns(3)

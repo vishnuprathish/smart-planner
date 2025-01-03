@@ -3,6 +3,7 @@ from pathlib import Path
 from services.openai_service import OpenAIService
 from services.firebase_service import FirebaseService
 from services.pdf_service import PDFService
+from services.user_service import UserService
 from components.welcome import show_welcome_section
 from components.ui import get_pdf_download_link
 from utils.session import init_session_state, is_valid_email
@@ -35,6 +36,31 @@ def check_connectivity():
     except OSError:
         return False
 
+def save_entries():
+    try:
+        # Ensure time_commitment is set
+        if 'time_commitment' not in st.session_state.current_plan:
+            st.session_state.current_plan['time_commitment'] = time_commitment
+        # Save to Firebase
+        firebase_service.store_user_goal(
+            goal=st.session_state.current_plan['goal'],
+            questions=st.session_state.current_plan['questions'],
+            answers=st.session_state.current_plan['answers'],
+            time_commitment=st.session_state.current_plan['time_commitment'],
+            tasks=st.session_state.current_plan['initiatives'],  # Assuming you want to store initiatives here
+            habits=st.session_state.current_plan['habits'],
+            reminder_settings={
+                'email': st.session_state.user_email,
+                'frequency': 'Daily',
+                'time': None,
+                'status': 'active'
+            }
+        )
+        st.session_state.plan_saved = True
+        st.success("✨ Your plan has been saved!")
+    except Exception as e:
+        st.error(f"Error saving plan: {str(e)}")
+
 # Initialize session state
 if 'current_step' not in st.session_state:
     st.session_state.current_step = 1
@@ -64,6 +90,7 @@ with open(css_path) as f:
 try:
     openai_service = OpenAIService()  # No need to pass api_key, it will use st.secrets
     firebase_service = FirebaseService()
+    user_service = UserService()
     pdf_service = PDFService()
 except Exception as e:
     st.error(f"Error initializing services: {str(e)}")
@@ -371,6 +398,11 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
     
     st.markdown("</div>", unsafe_allow_html=True)
     
+    # Time commitment input section
+    time_commitment = st.text_input("Enter time commitment for your goal (e.g., 30 minutes/day):")
+    if time_commitment:
+        st.session_state.current_plan['time_commitment'] = time_commitment
+    
     # Add PDF download button with responsive styling
     st.markdown("""
         <div style='text-align: center; margin-top: min(2em, 6vw);'>
@@ -415,54 +447,39 @@ if st.session_state.current_plan and not st.session_state.plan_saved:
     
     # Email reminder section
     if not st.session_state.user_email:
+        st.markdown("<h3 style='color: #FF4B4B; margin: 1.5em 0 1em; text-align: center;'>📧 Signup for Personalized Email Reminders on your goal and to download our habits tracker</h3>", unsafe_allow_html=True)
+        email = st.text_input("Enter your email address:")
+        
+        # Add description of benefits
         st.markdown("""
-            <div style='text-align: center; margin: 2em 0 1em;'>
-                <p style='color: #666; font-size: 1em;'>
-                    Want daily reminders? Add your email below.
-                </p>
+            <div style='background: #f0f2f6; padding: 1em; border-radius: 5px; margin: 1em 0;'>
+                <p style='color: #666; margin-bottom: 0.5em;'>✨ By signing up, you'll get:</p>
+                <ul style='color: #666; margin: 0;'>
+                    <li>Daily tracking of your progress</li>
+                    <li>Personalized motivation messages</li>
+                    <li>Smart reminder emails</li>
+                    <li>Access to our habits tracker</li>
+                </ul>
             </div>
         """, unsafe_allow_html=True)
         
-        email = st.text_input(
-            "Email Address",
-            placeholder="Enter your email (optional)",
-            key="email_reminder",
-            label_visibility="collapsed"
-        )
-        
-        if email and not is_valid_email(email):
-            st.error("Please enter a valid email address")
-            email = None
-    else:
-        email = st.session_state.user_email
+        if st.button("Save My Plan and Sign Up"):
+            if is_valid_email(email):
+                # Try to sign up the user
+                success, message = user_service.sign_up_with_email(email)
+                if success:
+                    st.session_state.user_email = email
+                    # Save entries to Firebase
+                    save_entries()
+                    st.success(message)
+                    st.info("Check your email to set up your password and complete your account setup!")
+                else:
+                    st.error(message)
+            else:
+                st.error("Please enter a valid email address.")
     
-    # Save button
-    st.markdown("<div style='margin-top: min(2em, 6vw);'>", unsafe_allow_html=True)
-    if st.button("Save My Plan", type="primary"):
-        if email:
-            st.session_state.user_email = email
-        
-        try:
-            # Save to Firebase
-            firebase_service.store_user_goal(
-                goal=st.session_state.current_plan['goal'],
-                questions=st.session_state.current_plan['questions'],
-                answers=st.session_state.current_plan['answers'],
-                time_commitment=st.session_state.current_plan['time_commitment'],
-                initiatives=st.session_state.current_plan['initiatives'],
-                habits=st.session_state.current_plan['habits'],
-                reminder_settings={
-                    'email': st.session_state.user_email,
-                    'frequency': 'Daily',
-                    'time': None,
-                    'status': 'active'
-                }
-            )
-            st.session_state.plan_saved = True
-            st.success("✨ Your plan has been saved!")
-        except Exception as e:
-            st.error(f"Error saving plan: {str(e)}")
-    st.markdown("</div>", unsafe_allow_html=True)
+    # Save all entries regardless of button click
+    save_entries()  # Call the function to save all entries
 
 if st.session_state.plan_saved:
     col1, col2, col3 = st.columns([1,2,1])
