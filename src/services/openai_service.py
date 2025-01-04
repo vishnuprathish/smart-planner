@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 from config.prompts import QUESTIONS_CONFIG, PLAN_CONFIG
+from services.security_service import SecurityService
 
 class GoalPlan(BaseModel):
     """Schema for the goal plan response."""
@@ -28,32 +29,24 @@ class GoalPlan(BaseModel):
 class OpenAIService:
     def __init__(self, api_key=None):
         """Initialize OpenAI service with API key."""
-        try:
-            # Try to get API key from environment first
-            self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-            
-            # If not in environment, try to get from secrets file
-            if not self.api_key:
-                secrets_path = Path(__file__).parent.parent / ".streamlit" / "secrets.toml"
-                if secrets_path.exists():
-                    with open(secrets_path, 'r') as f:
-                        for line in f:
-                            if line.startswith("OPENAI_API_KEY"):
-                                self.api_key = line.split("=")[1].strip().strip('"').strip("'")
-                                break
-            
-            if not self.api_key:
-                raise Exception("OpenAI API key not found")
-                
-            # Set the API key for the openai module
-            openai.api_key = self.api_key
-            
-        except Exception as e:
-            raise Exception(f"Error initializing OpenAI service: {str(e)}")
+        self.security = SecurityService()
+        api_key = api_key or st.secrets["OPENAI_API_KEY"]
+        openai.api_key = api_key
 
     def generate_questions(self, goal: str) -> List[str]:
         """Generate relevant questions based on the user's goal."""
         try:
+            # Check rate limit using session ID
+            if self.security.is_rate_limited(str(id(st.session_state))):
+                st.error("Rate limit exceeded. Please try again later.")
+                return []
+                
+            # Sanitize input
+            goal = self.security.sanitize_input(goal)
+            if not goal:
+                st.error("Invalid input provided")
+                return []
+            
             response = openai.ChatCompletion.create(
                 model=QUESTIONS_CONFIG.model,
                 messages=[
@@ -95,6 +88,20 @@ class OpenAIService:
     def generate_plan(self, goal: str, questions: List[str], answers: List[str]) -> Optional[Dict]:
         """Generate a personalized action plan based on the user's goal and answers."""
         try:
+            # Check rate limit using session ID
+            if self.security.is_rate_limited(str(id(st.session_state))):
+                st.error("Rate limit exceeded. Please try again later.")
+                return None
+                
+            # Sanitize all inputs
+            goal = self.security.sanitize_input(goal)
+            questions = [self.security.sanitize_input(q) for q in questions]
+            answers = [self.security.sanitize_input(a) for a in answers]
+            
+            if not all([goal, questions, answers]):
+                st.error("Invalid input provided")
+                return None
+                
             # Combine questions and answers
             qa_pairs = [f"Q: {q}\nA: {a}" for q, a in zip(questions, answers)]
             qa_text = "\n\n".join(qa_pairs)

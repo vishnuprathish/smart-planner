@@ -2,6 +2,9 @@
 
 test_goals = {
     "fitness": {
+        "initial_goal": "I want to get in better shape",
+        "refinement_response": "I want to focus on running, specifically completing a 5K race. I'll measure success by my race time, aiming for under 30 minutes. This matters because I want to prove to myself I can achieve a challenging fitness goal by March 2024.",
+        "refined_goal": "I will complete a 5K race in under 30 minutes by March 2024, transforming from a casual runner to a competitive racer—because proving my ability to achieve challenging fitness goals is important for my personal growth.",
         "goal": "Run a 5K race in under 30 minutes by March 2024",
         "answers": {
             "motivation": "I want to improve my overall fitness and challenge myself to accomplish something I've never done before. Running has always been difficult for me, and completing a 5K under 30 minutes would be a significant personal achievement.",
@@ -12,6 +15,9 @@ test_goals = {
         }
     },
     "career": {
+        "initial_goal": "I want to advance in my software engineering career",
+        "refinement_response": "I'm aiming for a Senior Software Engineer position. I'll measure success by leading technical projects and mentoring junior developers. This matters because I want to grow my technical leadership skills and increase my impact by December 2024.",
+        "refined_goal": "I will earn a promotion to Senior Software Engineer by December 2024 by successfully leading technical projects and mentoring junior developers—because expanding my influence and technical leadership will drive both personal growth and team success.",
         "goal": "Get promoted to Senior Software Engineer by December 2024",
         "answers": {
             "motivation": "I want to take on more leadership responsibilities and contribute to larger technical decisions. The promotion would also validate my growth as a developer and increase my earning potential.",
@@ -22,6 +28,9 @@ test_goals = {
         }
     },
     "finance": {
+        "initial_goal": "I want to buy a house",
+        "refinement_response": "I need to save $20,000 for a down payment. I'll track progress by my monthly savings rate and total savings. This matters because I want to build equity and have a stable home by January 2025.",
+        "refined_goal": "I will save $20,000 for a house down payment by January 2025 through disciplined monthly savings and smart financial planning—because building equity in my own home is crucial for my long-term financial stability and personal comfort.",
         "goal": "Save $20,000 for a house down payment by January 2025",
         "answers": {
             "motivation": "Want to stop renting and build equity in my own home. Looking to settle down in a stable living situation and have more control over my living space.",
@@ -54,7 +63,10 @@ if __name__ == "__main__":
     print("Available test goals:")
     for goal_type, data in test_goals.items():
         print(f"\n{goal_type.upper()} GOAL:")
-        print(f"Goal: {data['goal']}")
+        print(f"Initial Goal: {data['initial_goal']}")
+        print(f"Refinement Response: {data['refinement_response']}")
+        print(f"Refined Goal: {data['refined_goal']}")
+        print(f"Final Goal: {data['goal']}")
         print("\nAnswers:")
         for question, answer in data['answers'].items():
             print(f"\n{question.replace('_', ' ').title()}:")
